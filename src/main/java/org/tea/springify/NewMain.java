@@ -8,7 +8,6 @@ import java.util.Optional;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.BodyDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
@@ -38,26 +37,42 @@ public class NewMain {
 		// save the constructor + setters as strings in as list
 		// also save comments usw...
 
-		changeToConstructorInjection(cu);
+		final List<List<String>> results = changeToConstructorInjection(cu);
 
+		for (final List<String> result: results) {
+
+			assert result != null;
+			assert result.size() != 1;
+			if (result.size() == 0) {
+				continue;
+			}
+			replaceFirstSetterWithConstructor(result.get(0), result.get(1), file);
+
+			// do the magic
+		}
+		
 		// build regex for the setters
 		// make Constructor format look like inside eclipse -> get indents of first setter
 		// replace first setter by constructor
 		// replace rest of the setters by empty strings
 		// remove dispensable newlines
+		// check for imports 
 	}
 
-	private static void changeToConstructorInjection(final CompilationUnit cu) throws Exception {
+	private static List<List<String>> changeToConstructorInjection(final CompilationUnit cu) throws Exception {
 		boolean optionalImportNeeded = false;
-		final List<MethodDeclaration> nodesToRemove = new ArrayList<>();
+		final List<List<String>> results = new ArrayList<>();
+
 		// Go through all the types in the file
 		final NodeList<TypeDeclaration<?>> types = cu.getTypes();
 		for (final TypeDeclaration<?> type : types) {
+
 			// Set Type and Autowired for the constructor
-			Node firstSetter = null;
 			final ConstructorDeclaration constructorDeclaration = new ConstructorDeclaration();
 			constructorDeclaration.setName(type.getName());
 			constructorDeclaration.addAnnotation("Autowired");
+
+			final List<String> result = new ArrayList<>();
 
 			final NodeList<BodyDeclaration<?>> members = type.getMembers();
 			for (final BodyDeclaration<?> member : members) {
@@ -71,25 +86,24 @@ public class NewMain {
 						optionalImportNeeded = optionalImportNeeded ? true : optionalNeeded;
 						buildConstructor(constructorDeclaration, method.getParameters(), method.getBody().orElse(new BlockStmt()).getStatements(),
 								optionalNeeded);
-						// save first setter to replace it with the constructor
-						if (firstSetter == null) {
-							firstSetter = method;
-						} else {
-							nodesToRemove.add(method);
-						}
+
+						result.add(method.toString());
 					}
 				}
 			}
-			if (firstSetter != null) {
-				// replace the first saved setter with the constructor
-				firstSetter.replace(constructorDeclaration);
-				// remove the no longer needed setter
-				nodesToRemove.stream().forEach(Node::removeForced);
+
+			if (result.size() > 0) {
+				result.add(0, constructorDeclaration.toString());
+				results.add(result);
 			}
 		}
+
 		if (optionalImportNeeded) {
+			// TODO this information is still relevant and must be added where it is required
 			cu.addImport(Optional.class);
+			// maybe the string can be added to the last field of the array and the last field checked
 		}
+		return results;
 	}
 
 	// TODO this can be done more elegant using the elements of the AnnotationExpr -> replacing the string with an AnnotationExpr
@@ -105,7 +119,7 @@ public class NewMain {
 		return false;
 	}
 
-	//TODO is another treatment of Collections with required false correct needed?
+	//TODO is another treatment of Collections with required=false needed?
 	/**
 	 * Adds the contents of a method to an existing ConstructorDeclaration
 	 * 
