@@ -34,9 +34,17 @@ public class NewMain {
 		final FileInputStream in = new FileInputStream(args[0]);
 		final CompilationUnit cu = JavaParser.parse(in);
 
+
+		// save the constructor + setters as strings in as list
+		// also save comments usw...
+
 		changeToConstructorInjection(cu);
-		System.out.println(cu.toString());
-		// TODO write output -> maybe to same file
+
+		// build regex for the setters
+		// make Constructor format look like inside eclipse -> get indents of first setter
+		// replace first setter by constructor
+		// replace rest of the setters by empty strings
+		// remove dispensable newlines
 	}
 
 	private static void changeToConstructorInjection(final CompilationUnit cu) throws Exception {
@@ -138,7 +146,7 @@ public class NewMain {
 						isOptionalUsed = true;
 					}
 				} catch (final IllegalStateException e) {
-					// nothing todo, the Expression is simply not of intrest
+					// nothing todo, the Expression is simply not of interest
 				}
 			}
 			body.addStatement(statement);
