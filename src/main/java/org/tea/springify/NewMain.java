@@ -2,6 +2,10 @@ package org.tea.springify;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +42,13 @@ public class NewMain {
 		// also save comments usw...
 
 		final List<List<String>> results = changeToConstructorInjection(cu);
+		
+		try {
+			in.close();
+		} catch (final IOException e) {
+		}
+		
+		final List<String> file = Files.readAllLines(Paths.get(args[0]), StandardCharsets.UTF_8);
 
 		for (final List<String> result: results) {
 
@@ -47,6 +58,7 @@ public class NewMain {
 				continue;
 			}
 			replaceFirstSetterWithConstructor(result.get(0), result.get(1), file);
+
 
 			// do the magic
 		}
@@ -168,5 +180,20 @@ public class NewMain {
 		if (makeOptional && !isOptionalUsed) {
 			throw new Exception("Optional wasn't used");
 		}
+	}
+
+	private static void replaceFirstSetterWithConstructor(final String constructor, final String firstSetter, final String file) {
+
+	}
+
+	private static String toRegex(final String declaration) {
+		final String regex = null;
+		// correct replacement of blanks problem {{}}
+		return regex;
+	}
+
+	private static void replaceSetterByEmpty(final String setter, final String file) {
+		final String setterRegex = toRegex(setter);
+
 	}
 }
